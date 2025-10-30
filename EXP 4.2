@@ -1,0 +1,142 @@
+app.js
+// src/app.js
+const express = require("express");
+const app = express();
+const PORT = 3000;
+
+// Middleware
+app.use(express.json());
+
+// Pretty-print JSON responses
+app.set("json spaces", 2);
+
+// Import routes
+const cardRoutes = require("./routes/cards");
+
+// Use routes
+app.use("/cards", cardRoutes);
+
+// Optional root route (so "/" doesn’t show Cannot GET /)
+app.get("/", (req, res) => {
+  res.send("Welcome to the Playing Cards API! Use /cards to interact.");
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+
+cards.js
+// src/routes/cards.js
+const express = require("express");
+const router = express.Router();
+let cards = require("../data/cards");
+
+// GET all cards
+router.get("/", (req, res) => {
+  res.status(200).json(cards);
+});
+
+// GET card by ID
+router.get("/:id", (req, res) => {
+  const cardId = parseInt(req.params.id);
+  const card = cards.find((c) => c.id === cardId);
+
+  if (!card) {
+    return res.status(404).json({ message: `Card with ID ${cardId} not found` });
+  }
+
+  res.status(200).json(card);
+});
+
+// POST add a new card
+router.post("/", (req, res) => {
+  const { suit, value } = req.body;
+
+  if (!suit || !value) {
+    return res.status(400).json({ message: "Suit and value are required" });
+  }
+
+  const newCard = {
+    id: cards.length ? cards[cards.length - 1].id + 1 : 1,
+    suit,
+    value,
+  };
+
+  cards.push(newCard);
+
+  res.status(201).json(newCard);
+});
+
+// ✅ PUT update card by ID
+router.put("/:id", (req, res) => {
+  const cardId = parseInt(req.params.id);
+  const { suit, value } = req.body;
+
+  const cardIndex = cards.findIndex((c) => c.id === cardId);
+
+  if (cardIndex === -1) {
+    return res.status(404).json({ message: `Card with ID ${cardId} not found` });
+  }
+
+  if (!suit && !value) {
+    return res.status(400).json({ message: "At least one field (suit or value) is required to update" });
+  }
+
+  // Update only provided fields
+  if (suit) cards[cardIndex].suit = suit;
+  if (value) cards[cardIndex].value = value;
+
+  res.status(200).json({
+    message: `Card with ID ${cardId} updated`,
+    card: cards[cardIndex],
+  });
+});
+
+// DELETE card by ID
+router.delete("/:id", (req, res) => {
+  const cardId = parseInt(req.params.id);
+  const cardIndex = cards.findIndex((c) => c.id === cardId);
+
+  if (cardIndex === -1) {
+    return res.status(404).json({ message: `Card with ID ${cardId} not found` });
+  }
+
+  const removedCard = cards.splice(cardIndex, 1)[0];
+
+  res.status(200).json({
+    message: `Card with ID ${cardId} removed`,
+    card: removedCard,
+  });
+});
+
+module.exports = router;
+
+index.js
+const express = require('express');
+const router = express.Router();
+
+// Sample data
+const data = [];
+
+// GET endpoint
+router.get('/data', (req, res) => {
+    res.json(data);
+});
+
+// POST endpoint
+router.post('/data', (req, res) => {
+    const newItem = req.body;
+    data.push(newItem);
+    res.json(newItem);
+});
+
+// PUT endpoint
+router.put('/data/:id', (req, res) => {
+    const id = req.params.id;
+    const updatedItem = req.body;
+    data[id] = updatedItem;
+    res.json(updatedItem);
+});
+
+module.exports = router;
